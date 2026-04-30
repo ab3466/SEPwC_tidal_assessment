@@ -12,8 +12,12 @@ import argparse
 
 
 def read_tidal_data(filename):
+    data = pd.read_csv(filename,delim_white=True, skiprows=11,names=["date", "time", "height"])
+    data["datetime"] = pd.to_datetime(data["date"] + " " + data["time"],errors="coerce")
+    data["height"] = pd.to_numeric(data["height"], errors="coerce")
+    data =data.dropna()
 
-    return
+    return data
     
 def extract_single_year_remove_mean(year, data):
 
@@ -60,7 +64,8 @@ def main(args_list=None):
     dirname = args.directory
     verbose = args.verbose
 
-    print("Add your code here to do things!")
+    files = os.listdir(dirname)
+    print(files)
     
 
 if __name__ == '__main__':
