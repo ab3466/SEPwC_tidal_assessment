@@ -12,10 +12,13 @@ import argparse
 
 
 def read_tidal_data(filename):
-    data = pd.read_csv(filename,delim_white=True, skiprows=11,names=["date", "time", "height"])
-    data["datetime"] = pd.to_datetime(data["date"] + " " + data["time"],errors="coerce")
-    data["height"] = pd.to_numeric(data["height"], errors="coerce")
-    data =data.dropna()
+   data = pd.read_csv(filename,delim_whitespace=True, skiprows=11,names=["date", "time", "height"])
+   data["datetime"] = pd.to_datetime(data["date"] + " " + data["time"],
+                                      format="%Y/%m/%d %H:%M",
+                                      errors="coerce")
+   data["height"] = pd.to_numeric(data["height"], errors="coerce")
+   # data =data.dropna()
+   print(data.head())
 
     return data
     
@@ -65,8 +68,18 @@ def main(args_list=None):
     verbose = args.verbose
 
     files = os.listdir(dirname)
-    print(files)
     
+    txt_files = []
+    
+    for file in files:
+        if file.endswith(".txt"):
+            txt_files.append(file)
+    
+        
+    for file in txt_files:
+        filepath =os.path.join(dirname, file)
+        data = read_tidal_data(filepath)
+        print(data.head())
 
 if __name__ == '__main__':
     main()
