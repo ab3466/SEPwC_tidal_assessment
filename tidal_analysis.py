@@ -1,13 +1,8 @@
 # import the modules we need
 import pandas as pd
-import datetime
 import os
-import numpy as np
-
-import math
-from scipy import stats
-import matplotlib.dates as mdates
 import argparse
+from scipy import stats
 
 
 def read_tidal_data(filename):
@@ -31,14 +26,14 @@ def read_tidal_data(filename):
 
     return data
     
+
 def extract_single_year_remove_mean(year, data):
 
-    year_data = data[data.index.year == int(year)]
+    year_data = data[data.index.year == int(year)].copy()
 
     mean_height = year_data["Sea Level"].mean()
 
-    year_data["residuals"] = year_data["Sea Level"] - mean_height
-
+    year_data["Sea Level"] = year_data["Sea Level"] - mean_height
 
     return year_data 
 
@@ -50,7 +45,7 @@ def extract_section_remove_mean(start, end, data):
 
     mean_height = section_data["Sea Level"].mean()
 
-    section_data["residuals"] = (
+    section_data["Sea Level"] = (
         section_data["Sea Level"] - mean_height)
 
 
@@ -66,17 +61,32 @@ def join_data(data1, data2):
 
     return combined_data
 
+
 def sea_level_rise(data):
 
     yearly_mean = data.groupby(
-    data.index.year)["Sea Level"].mean()
+        data.index.year)["Sea Level"].mean()
 
+    years = yearly_mean.index
+    sea_levels = yearly_mean.values
 
-    return yearly_mean
+    slope, intercept, r_value, p_value, std_err = (stats.linregress(years, sea_levels))
+
+    return slope, p_value
+
 
 def tidal_analysis(data, constituents, start_datetime):
 
-    return
+    residual_mean = data["Residual"].mean()
+
+    results = {
+        "start_datetime": start_datetime,
+        "constituents": constituents,
+        "mean_residual": residual_mean
+        }
+
+    return results
+
 
 def get_longest_contiguous_data(data):
 
@@ -118,6 +128,7 @@ def main(args_list=None):
     
     txt_files = []
     
+    
     for file in files:
         if file.endswith(".txt"):
             txt_files.append(file)
@@ -125,18 +136,21 @@ def main(args_list=None):
         
     for file in txt_files:
 
-     filepath = os.path.join(dirname, file)
+        if verbose:
+            print(f"Processing {file}")
 
-     data = read_tidal_data(filepath)
+        filepath = os.path.join(dirname, file)
 
-     year_data = extract_single_year_remove_mean(2018, data)
+        data = read_tidal_data(filepath)
 
-     section_data = extract_section_remove_mean(
-        pd.Timestamp("2019-01-01"),
-        pd.Timestamp("2019-01-31 23:59:59"),
-        data)
+        year_data = extract_single_year_remove_mean(2018, data)
 
-     combined = join_data(year_data, section_data)
+        section_data = extract_section_remove_mean(
+            pd.Timestamp("2019-01-01"),
+            pd.Timestamp("2019-01-31 23:59:59"),
+            data)
+
+        combined = join_data(year_data, section_data)
 
 
 if __name__ == '__main__':
