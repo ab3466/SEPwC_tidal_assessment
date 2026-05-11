@@ -4,7 +4,7 @@ import os
 import argparse
 from scipy import stats
 
-
+# Reads tidal data from a text file and formats datetime values
 def read_tidal_data(filename):
 
     data = pd.read_csv(
@@ -26,7 +26,7 @@ def read_tidal_data(filename):
 
     return data
     
-
+# Extracts data from a selected year and removes the mean sea level
 def extract_single_year_remove_mean(year, data):
 
     year_data = data[data.index.year == int(year)].copy()
@@ -37,7 +37,7 @@ def extract_single_year_remove_mean(year, data):
 
     return year_data 
 
-
+# Extracts a time section of data and removes the mean sea level
 def extract_section_remove_mean(start, end, data):
 
     
@@ -51,7 +51,7 @@ def extract_section_remove_mean(start, end, data):
 
     return section_data
 
-
+# Combines two datasets and sorts them by datetime
 def join_data(data1, data2):
 
     combined_data = pd.concat([data1, data2])
@@ -61,7 +61,7 @@ def join_data(data1, data2):
 
     return combined_data
 
-
+# Calculates sea level rise statistics using linear regression
 def sea_level_rise(data):
 
     yearly_mean = data.groupby(
@@ -74,7 +74,7 @@ def sea_level_rise(data):
 
     return slope, p_value
 
-
+# Performs tidal constituent analysis and summarises residual data
 def tidal_analysis(data, constituents, start_datetime):
 
     residual_mean = data["Residual"].mean()
@@ -87,7 +87,7 @@ def tidal_analysis(data, constituents, start_datetime):
 
     return results
 
-
+# Finds the longest continuous block of tidal data
 def get_longest_contiguous_data(data):
 
     data = data.sort_index()
@@ -105,7 +105,7 @@ def get_longest_contiguous_data(data):
 
     return longest_group
 
-
+# Main function for loading, processing and analysing tidal datasets
 def main(args_list=None):
 
     parser = argparse.ArgumentParser(
@@ -151,6 +151,16 @@ def main(args_list=None):
             data)
 
         combined = join_data(year_data, section_data)
+
+        slr = sea_level_rise(data)
+
+        if verbose:
+            print(slr)
+
+        longest_data = get_longest_contiguous_data(data)
+
+        if verbose:
+           print(longest_data.head())
 
 
 if __name__ == '__main__':
