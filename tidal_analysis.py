@@ -151,12 +151,16 @@ def main(args_list=None):
             data)
 
         combined = join_data(year_data, section_data)
-
+# Calculate sea level rise statistics
         slr = sea_level_rise(data)
+        slope, p_value = slr
+        
 
         if verbose:
-            print(slr)
-
+            print(f"Sea level rise slope: {slope}")
+            print(f"P-value: {p_value}")
+            print("-" * 40)
+# Identify the longest continuous section of valid data
         longest_data = get_longest_contiguous_data(data)
 
         if verbose:
