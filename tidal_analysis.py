@@ -3,8 +3,7 @@ import pandas as pd
 import datetime
 import os
 import numpy as np
-# import uptide
-# import pytz
+
 import math
 from scipy import stats
 import matplotlib.dates as mdates
@@ -17,48 +16,43 @@ def read_tidal_data(filename):
         filename,
         sep=r"\s+",
         skiprows=11,
-        names=["date", "time", "height", "residuals"])
+        names=["Date", "Time", "Sea Level", "Residual"])
 
     data["datetime"] = pd.to_datetime(
-        data["date"] + " " + data["time"],
+        data["Date"] + " " + data["Time"],
         format="%Y/%m/%d %H:%M:%S",
         errors="coerce")
 
-    data["height"] = pd.to_numeric(
-        data["height"],
+    data["Sea Level"] = pd.to_numeric(
+        data["Sea Level"],
         errors="coerce")
 
-    #print(data.head())
+    data.set_index("datetime", inplace=True)
 
     return data
     
 def extract_single_year_remove_mean(year, data):
 
-    year_data = data[data["datetime"].dt.year == year]
+    year_data = data[data.index.year == int(year)]
 
-    mean_height = year_data["height"].mean()
+    mean_height = year_data["Sea Level"].mean()
 
-    year_data["residuals"] = year_data["height"] - mean_height
+    year_data["residuals"] = year_data["Sea Level"] - mean_height
 
-    #print(year_data.head())
 
     return year_data 
 
 
 def extract_section_remove_mean(start, end, data):
 
-    #print(data["datetime"].min(), data["datetime"].max())
     
-    section_data = data[
-    (data["datetime"] >= start) &
-    (data["datetime"] <= end)].copy()
+    section_data = data.loc[start:end].copy()
 
-    mean_height = section_data["height"].mean()
+    mean_height = section_data["Sea Level"].mean()
 
     section_data["residuals"] = (
-        section_data["height"] - mean_height)
+        section_data["Sea Level"] - mean_height)
 
-  #print(section_data.head())
 
     return section_data
 
@@ -67,18 +61,16 @@ def join_data(data1, data2):
 
     combined_data = pd.concat([data1, data2])
 
-    combined_data = combined_data.sort_values(by="datetime")
+    combined_data = combined_data.sort_index()
 
-    #print(combined_data.head())
 
     return combined_data
 
 def sea_level_rise(data):
 
     yearly_mean = data.groupby(
-        data["datetime"].dt.year)["height"].mean()
+    data.index.year)["Sea Level"].mean()
 
-    #print(yearly_mean)
 
     return yearly_mean
 
@@ -88,9 +80,9 @@ def tidal_analysis(data, constituents, start_datetime):
 
 def get_longest_contiguous_data(data):
 
-    data = data.sort_values(by="datetime")
+    data = data.sort_index()
 
-    time_diff = data["datetime"].diff()
+    time_diff = data.index.to_series().diff()
 
     gap_mask = time_diff > pd.Timedelta(minutes=15)
 
@@ -100,7 +92,6 @@ def get_longest_contiguous_data(data):
 
     longest_group = max(groups, key=lambda x: len(x[1]))[1]
 
-    print(longest_group.head())
 
     return longest_group
 
@@ -147,13 +138,6 @@ def main(args_list=None):
 
      combined = join_data(year_data, section_data)
 
-    print(combined.head())
-    slr = sea_level_rise(data)
-
-    print(slr)
-    longest_data = get_longest_contiguous_data(data)
-
-    print(longest_data.head())
 
 if __name__ == '__main__':
     main()
