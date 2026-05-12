@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import argparse
 from scipy import stats
+import warnings
+import datetime
 
 # Reads tidal data from a text file and formats datetime values
 def read_tidal_data(filename):
@@ -20,6 +22,10 @@ def read_tidal_data(filename):
 
     data["Sea Level"] = pd.to_numeric(
         data["Sea Level"],
+        errors="coerce")
+    
+    data["Residual"] = pd.to_numeric(
+        data["Residual"],
         errors="coerce")
 
     data.set_index("datetime", inplace=True)
@@ -39,7 +45,6 @@ def extract_single_year_remove_mean(year, data):
 
 # Extracts a time section of data and removes the mean sea level
 def extract_section_remove_mean(start, end, data):
-
     
     section_data = data.loc[start:end].copy()
 
@@ -70,7 +75,15 @@ def sea_level_rise(data):
     years = yearly_mean.index
     sea_levels = yearly_mean.values
 
-    slope, intercept, r_value, p_value, std_err = (stats.linregress(years, sea_levels))
+    if len(years) < 2:
+        return float("nan"), float("nan")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+
+        slope, intercept, r_value, p_value, std_err = (
+            stats.linregress(years, sea_levels)
+        )
 
     return slope, p_value
 
@@ -79,13 +92,7 @@ def tidal_analysis(data, constituents, start_datetime):
 
     residual_mean = data["Residual"].mean()
 
-    results = {
-        "start_datetime": start_datetime,
-        "constituents": constituents,
-        "mean_residual": residual_mean
-        }
-
-    return results
+    return constituents, residual_mean
 
 # Finds the longest continuous block of tidal data
 def get_longest_contiguous_data(data):
@@ -109,9 +116,12 @@ def get_longest_contiguous_data(data):
 def main(args_list=None):
 
     parser = argparse.ArgumentParser(
-                     prog="UK Tidal analysis",
-                     description="Calculate tidal constiuents and RSL from tide gauge data",
-                     )
+        prog="UK Tidal analysis",
+        description=(
+            "Calculate tidal constiuents and RSL "
+            "from tide gauge data"
+        ),
+    )
 
     parser.add_argument("directory",
                     help="the directory containing txt files with data")
@@ -151,21 +161,21 @@ def main(args_list=None):
             data)
 
         combined = join_data(year_data, section_data)
-# Calculate sea level rise statistics
+        
+        # Calculate sea level rise statistics
         slr = sea_level_rise(data)
         slope, p_value = slr
         
-
         if verbose:
-            print(f"Sea level rise slope: {slope}")
-            print(f"P-value: {p_value}")
+            # print(f"Sea level rise slope: {slope}")
+            # print(f"P-value: {p_value}")
             print("-" * 40)
-# Identify the longest continuous section of valid data
+        # Identify the longest continuous section of valid data
         longest_data = get_longest_contiguous_data(data)
 
         if verbose:
-           print(longest_data.head())
-
+            print(longest_data.head())
+         
 
 if __name__ == '__main__':
     main()
